@@ -1,0 +1,39 @@
+{
+  "short_name": "CitySpotter",
+  "name": "CitySpotter - Szybkie zgłoszenia miejskie",
+  "icons": [
+    {
+      "src": "images/icon-city_spotter-128x128.png",
+      "type": "image/png",
+      "sizes": "128x128"
+    },
+        {
+      "src": "images/icon-city_spotter-152x152.png",
+      "type": "image/png",
+      "sizes": "152x152"
+    },
+        {
+      "src": "images/icon-city_spotter-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+        {
+      "src": "images/icon-city_spotter-256x256.png",
+      "type": "image/png",
+      "sizes": "256x256"
+    },
+
+    {
+      "src": "images/icon-city_spotter-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "index.html",
+  "background_color": "#f8f9fa",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#0d6efd",
+  "description": "Aplikacja do szybkiego zgłaszania problemów miejskich."
+}
