@@ -142,6 +142,33 @@ function renderMapMarkers() {
 // =====================
 // LOCAL STORAGE
 // =====================
+function resizeImage(file, callback) {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+        const img = new Image();
+
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxWidth = 320;
+            const scale = Math.min(1, maxWidth / img.width);
+
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            callback(imageData);
+        };
+
+        img.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+}
+
 function loadReports() {
     const savedReports = localStorage.getItem('citySpotterReports');
 
@@ -154,29 +181,39 @@ function loadReports() {
 }
 
 function saveReports() {
-    localStorage.setItem('citySpotterReports', JSON.stringify(reports));
+    try {
+        localStorage.setItem('citySpotterReports', JSON.stringify(reports));
+        return true;
+    } catch (error) {
+        console.error('Błąd zapisu zgłoszeń:', error);
+        alert('Nie udało się zapisać zgłoszenia lokalnie. Pamięć aplikacji jest prawdopodobnie zapełniona.');
+        return false;
+    }
 }
 
 function saveCurrentReport() {
     if (!currentPhoto || !currentCoords) return;
 
-    const reader = new FileReader();
-
-    reader.onload = () => {
+    resizeImage(currentPhoto, (imageData) => {
         const report = {
             id: Date.now(),
-            imageData: reader.result,
+            imageData: imageData,
             lat: currentCoords.lat,
             lon: currentCoords.lon,
         };
 
         reports.unshift(report);
-        saveReports();
+
+        const saved = saveReports();
+
+        if (!saved) {
+            reports.shift();
+            return;
+        }
+
         renderReports();
         renderMapMarkers();
-    };
-
-    reader.readAsDataURL(currentPhoto);
+    });
 }
 
 function deleteReport(reportId) {
