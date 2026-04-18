@@ -4,6 +4,7 @@
 let map;
 let currentPhoto = null;
 let currentCoords = null;
+let currentReportText = '';
 let reports = [];
 let reportMarkers = [];
 
@@ -17,6 +18,7 @@ const cameraInput = document.getElementById('camera-input');
 const photoPreview = document.getElementById('photo-preview');
 const locationStatus = document.getElementById('location-status');
 const reportsList = document.getElementById('reports-list');
+const reportText = document.getElementById('report-text');
 
 loadReports();
 initMap();
@@ -70,8 +72,15 @@ cameraInput.addEventListener('change', (event) => {
     photoPreview.src = imageURL;
     photoPreview.style.display = 'block';
 
+    enableShare();
+
     // pobierz GPS
     getLocation();
+});
+
+reportText.addEventListener('input', (event) => {
+    currentReportText = event.target.value.trim();
+    enableShare();
 });
 
 // =====================
@@ -131,9 +140,16 @@ function renderMapMarkers() {
     reportMarkers = [];
 
     reports.forEach((report) => {
+        const popupContent = `
+            <div class="report-popup">
+                <img src="${report.imageData}" alt="Zdjęcie zgłoszenia" class="report-popup-image" />
+                <div class="report-popup-text">${report.text || 'Brak opisu'}</div>
+            </div>
+        `;
+
         const marker = L.marker([report.lat, report.lon])
             .addTo(map)
-            .bindPopup('Zapisane zgłoszenie 📸');
+            .bindPopup(popupContent);
 
         reportMarkers.push(marker);
     });
@@ -192,12 +208,13 @@ function saveReports() {
 }
 
 function saveCurrentReport() {
-    if (!currentPhoto || !currentCoords) return;
+    if (!currentPhoto || !currentCoords || !currentReportText) return;
 
     resizeImage(currentPhoto, (imageData) => {
         const report = {
             id: Date.now(),
             imageData: imageData,
+            text: currentReportText,
             lat: currentCoords.lat,
             lon: currentCoords.lon,
         };
@@ -213,6 +230,7 @@ function saveCurrentReport() {
 
         renderReports();
         renderMapMarkers();
+        clearCurrentReport();
     });
 }
 
@@ -221,6 +239,20 @@ function deleteReport(reportId) {
     saveReports();
     renderReports();
     renderMapMarkers();
+}
+
+function clearCurrentReport() {
+    currentPhoto = null;
+    currentCoords = null;
+    currentReportText = '';
+
+    cameraInput.value = '';
+    photoPreview.src = '';
+    photoPreview.style.display = 'none';
+    reportText.value = '';
+    locationStatus.textContent = 'Oczekiwanie na sygnał GPS';
+
+    enableShare();
 }
 
 // =====================
@@ -239,6 +271,7 @@ function renderReports() {
                     <div class="report-content">
                         <img src="${report.imageData}" alt="Miniatura zgłoszenia" class="report-thumb" />
                         <div class="report-text">
+                            <div class="report-message">${report.text || 'Brak opisu'}</div>
                             <div>Lat: ${report.lat.toFixed(5)}</div>
                             <div>Lon: ${report.lon.toFixed(5)}</div>
                         </div>
@@ -267,10 +300,10 @@ function renderReports() {
 function enableShare() {
     const btnShare = document.getElementById('btn-share');
 
-    btnShare.disabled = !(currentPhoto && currentCoords);
+    btnShare.disabled = !(currentPhoto && currentCoords && currentReportText);
 
     btnShare.onclick = async () => {
-        if (!currentCoords || !currentPhoto) return;
+        if (!currentCoords || !currentPhoto || !currentReportText) return;
 
         const { lat, lon } = currentCoords;
         const url = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}`;
@@ -281,7 +314,7 @@ function enableShare() {
             if (navigator.share) {
                 await navigator.share({
                     title: 'Zgłoszenie problemu',
-                    text: 'Zobacz lokalizację problemu',
+                    text: `${currentReportText}\nLat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}`,
                     url: url,
                     files: [currentPhoto],
                 });
