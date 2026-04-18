@@ -23,3 +23,50 @@ body {
 #location-status {
     font-style: italic;
 }
+
+.reports-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.report-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: #ffffff;
+}
+
+.report-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.report-thumb {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
+.report-text {
+    font-size: 0.95rem;
+    color: #212529;
+    word-break: break-word;
+}
+
+.report-delete {
+    font-size: 1.25rem;
+    text-decoration: none;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+}

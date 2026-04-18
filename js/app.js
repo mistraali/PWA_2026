@@ -2,21 +2,26 @@
 // GLOBAL STATE
 // =====================
 let map;
-let marker;
 let currentPhoto = null;
 let currentCoords = null;
+let reports = [];
+let reportMarkers = [];
 
 // =====================
 // INIT
 // =====================
 console.log('APP START');
 
-initMap();
-
 const btnCapture = document.getElementById('btn-capture');
 const cameraInput = document.getElementById('camera-input');
 const photoPreview = document.getElementById('photo-preview');
 const locationStatus = document.getElementById('location-status');
+const reportsList = document.getElementById('reports-list');
+
+loadReports();
+initMap();
+renderReports();
+enableShare();
 
 // =====================
 // MAPA STARTOWA
@@ -30,6 +35,8 @@ function initMap() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
     }).addTo(map);
+
+    renderMapMarkers();
 
     // fix renderowania
     setTimeout(() => {
@@ -112,17 +119,109 @@ function showMap(lat, lon) {
 
     // przesunięcie mapy
     map.setView([lat, lon], 16);
+}
 
-    // usuń poprzedni marker
-    if (marker) {
+function renderMapMarkers() {
+    if (!map) return;
+
+    reportMarkers.forEach((marker) => {
         marker.remove();
+    });
+
+    reportMarkers = [];
+
+    reports.forEach((report) => {
+        const marker = L.marker([report.lat, report.lon])
+            .addTo(map)
+            .bindPopup('Zapisane zgłoszenie 📸');
+
+        reportMarkers.push(marker);
+    });
+}
+
+// =====================
+// LOCAL STORAGE
+// =====================
+function loadReports() {
+    const savedReports = localStorage.getItem('citySpotterReports');
+
+    if (!savedReports) {
+        reports = [];
+        return;
     }
 
-    // dodaj marker
-    marker = L.marker([lat, lon])
-        .addTo(map)
-        .bindPopup('Tutaj wykonano zdjęcie 📸')
-        .openPopup();
+    reports = JSON.parse(savedReports);
+}
+
+function saveReports() {
+    localStorage.setItem('citySpotterReports', JSON.stringify(reports));
+}
+
+function saveCurrentReport() {
+    if (!currentPhoto || !currentCoords) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+        const report = {
+            id: Date.now(),
+            imageData: reader.result,
+            lat: currentCoords.lat,
+            lon: currentCoords.lon,
+        };
+
+        reports.unshift(report);
+        saveReports();
+        renderReports();
+        renderMapMarkers();
+    };
+
+    reader.readAsDataURL(currentPhoto);
+}
+
+function deleteReport(reportId) {
+    reports = reports.filter((report) => report.id !== reportId);
+    saveReports();
+    renderReports();
+    renderMapMarkers();
+}
+
+// =====================
+// LISTA ZGŁOSZEŃ
+// =====================
+function renderReports() {
+    if (!reports.length) {
+        reportsList.innerHTML = '<p class="text-muted mb-0">Brak zapisanych zgłoszeń</p>';
+        return;
+    }
+
+    reportsList.innerHTML = reports
+        .map((report) => {
+            return `
+                <div class="report-item">
+                    <div class="report-content">
+                        <img src="${report.imageData}" alt="Miniatura zgłoszenia" class="report-thumb" />
+                        <div class="report-text">
+                            <div>Lat: ${report.lat.toFixed(5)}</div>
+                            <div>Lon: ${report.lon.toFixed(5)}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-link text-danger report-delete" data-id="${report.id}">
+                        X
+                    </button>
+                </div>
+            `;
+        })
+        .join('');
+
+    const deleteButtons = document.querySelectorAll('.report-delete');
+
+    deleteButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const reportId = Number(button.dataset.id);
+            deleteReport(reportId);
+        });
+    });
 }
 
 // =====================
@@ -131,21 +230,23 @@ function showMap(lat, lon) {
 function enableShare() {
     const btnShare = document.getElementById('btn-share');
 
-    btnShare.disabled = false;
+    btnShare.disabled = !(currentPhoto && currentCoords);
 
     btnShare.onclick = async () => {
-        if (!currentCoords) return;
+        if (!currentCoords || !currentPhoto) return;
 
         const { lat, lon } = currentCoords;
         const url = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}`;
 
         try {
+            saveCurrentReport();
+
             if (navigator.share) {
                 await navigator.share({
                     title: 'Zgłoszenie problemu',
                     text: 'Zobacz lokalizację problemu',
                     url: url,
-                    files: currentPhoto ? [currentPhoto] : [],
+                    files: [currentPhoto],
                 });
             } else {
                 alert('Twoja przeglądarka nie wspiera udostępniania');
